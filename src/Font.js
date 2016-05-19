@@ -200,11 +200,11 @@ Font.prototype.updateSVGData = function( set ) {
 	return this;
 };
 
-Font.prototype.updateOTCommands = function( set, merged ) {
+Font.prototype.updateOTCommands = function( set, shouldMerge ) {
 	return this.updateOT({
 		set: set,
 		shouldUpdateCommands: true,
-		merged: merged
+		shouldMerge: shouldMerge
 	});
 };
 
@@ -218,9 +218,14 @@ Font.prototype.updateOT = function( args ) {
 
 	this.ot.glyphs.glyphs = (
 		this.getGlyphSubset( args && args.set ).reduce(function(o, glyph, i) {
-			o[i] = args && args.shouldUpdateCommands ?
-				glyph.updateOTCommands( null, args && args.merged ) :
-				glyph.ot;
+			if ( args && args.shouldUpdateCommands ) {
+				o[i] = args.shouldMerge ?
+					glyph.combineOTCommands( null ) :
+					glyph.updateOTCommands( null );
+			} else {
+				o[i] = glyph.ot;
+			}
+
 			return o;
 		}, {})
 	);
@@ -260,8 +265,10 @@ if ( typeof window === 'object' && window.document ) {
 	var _URL = window.URL || window.webkitURL;
 	Font.prototype.addToFonts = document.fonts ?
 		// CSS font loading, lightning fast
-		function( buffer ) {
-			var enFamilyName = this.ot.getEnglishName('fontFamily');
+		function( buffer, enFamilyName ) {
+			if ( !enFamilyName ) {
+				enFamilyName = this.ot.getEnglishName('fontFamily');
+			}
 
 			if ( this.fontMap[ enFamilyName ] ) {
 				document.fonts.delete( this.fontMap[ enFamilyName ] );
@@ -282,8 +289,11 @@ if ( typeof window === 'object' && window.document ) {
 
 			return this;
 		} :
-		function( buffer ) {
-			var enFamilyName = this.ot.getEnglishName('fontFamily');
+		function( buffer, enFamilyName ) {
+			if ( !enFamilyName ) {
+				enFamilyName = this.ot.getEnglishName('fontFamily');
+			}
+
 			var url = _URL.createObjectURL(
 					new Blob(
 						[ new DataView( buffer || this.toArrayBuffer() ) ],
@@ -308,9 +318,9 @@ if ( typeof window === 'object' && window.document ) {
 
 	var a = document.createElement('a');
 
-	var triggerDownload = function( font, arrayBuffer ) {
+	var triggerDownload = function( font, arrayBuffer, filename ) {
 		var reader = new FileReader();
-		var enFamilyName = font.ot.getEnglishName('fontFamily');
+		var enFamilyName = filename || font.ot.getEnglishName('fontFamily');
 
 		reader.onloadend = function() {
 			a.download = enFamilyName + '.otf';
@@ -332,22 +342,23 @@ if ( typeof window === 'object' && window.document ) {
 	Font.prototype.download = function( arrayBuffer, merged, name, user ) {
 		if ( merged ) {
 			// TODO: replace that with client-side font merging
-			fetch('http://fontforgeconv.cloudapp.net/' +
+			fetch('https://merge.prototypo.io/' +
 				name.family + '/' +
 				name.style + '/' + user, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/otf' },
 					body: arrayBuffer
-				})
-				.then(function( response ) {
-					return response.arrayBuffer();
-				})
-				.then(function( bufferToDownload ) {
-					triggerDownload( this, bufferToDownload );
-				}.bind(this));
+			})
+			.then(function( response ) {
+				return response.arrayBuffer();
+			})
+			.then(function( bufferToDownload ) {
+				triggerDownload( this, bufferToDownload );
+			}.bind(this));
 
 		} else {
-			triggerDownload( this, arrayBuffer );
+			triggerDownload(
+				this, arrayBuffer, name && ( name.family + ' ' + name.style ) );
 		}
 
 		return this;

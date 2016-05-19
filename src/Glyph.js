@@ -189,15 +189,43 @@ Glyph.prototype.updateOTCommands = function( path ) {
 		path = this.ot.path;
 	}
 
-/* eslint-disable */
 	this.children[0].updateOTCommands( path );
 
 	this.children[1].children.forEach(function( component ) {
 		component.updateOTCommands( path );
 	});
-/* eslint-enable */
 
 	return this.ot;
+};
+
+Glyph.prototype.combineOTCommands = function( path ) {
+	if ( !path ) {
+		this.ot.path.commands = [];
+		path = this.ot.path;
+	}
+
+	var combined = this.combineTo( new Outline() );
+
+	if ( combined ) {
+		// prototypo.js will make all contours clockwise without this
+		combined.isPrepared = true;
+		combined.updateOTCommands( path );
+	}
+
+	return this.ot;
+};
+
+Glyph.prototype.combineTo = function( outline ) {
+	if ( !outline ) {
+		outline = new Outline();
+	}
+
+	outline = this.children[0].combineTo( outline );
+
+	return this.children[1].children.reduce(function( outline, component ) {
+		// and then combine it to the rest of the glyph
+		return component.combineTo( outline );
+	}, outline);
 };
 
 Glyph.prototype.importOT = function( otGlyph ) {
@@ -212,7 +240,7 @@ Glyph.prototype.importOT = function( otGlyph ) {
 		switch ( command.type ) {
 			case 'M':
 				current = new paper.Path();
-				this.contours.addChildren( current );
+				this.children[0].addChild( current );
 
 				current.moveTo( command );
 				break;
@@ -242,7 +270,7 @@ Glyph.prototype.importOT = function( otGlyph ) {
 				}
 				break;
 		}
-	}, this);
+	}.bind(this));
 
 	return this;
 };

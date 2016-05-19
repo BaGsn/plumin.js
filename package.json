@@ -1,8 +1,8 @@
 {
   "name": "plumin.js",
-  "version": "1.0.1",
+  "version": "1.7.2",
   "description": "Create and manipulate fonts using javascript",
-  "main": "src/plumin.js",
+  "main": "dist/plumin.js",
   "scripts": {
     "gulp": "gulp",
     "help": "gulp --tasks",
@@ -30,8 +30,6 @@
     "codemirror": "^5.1.0",
     "es6-object-assign": "^1.0.1",
     "eslint": "^2.1.0",
-    "eslint-config-defaults": "^9.0.0",
-    "eslint-config-eslint": "^3.0.0",
     "eslint-plugin-mocha": "^2.0.0",
     "ghooks": "^1.0.3",
     "gulp": "^3.9.1",
@@ -41,7 +39,7 @@
     "knacss": "^4.0.3",
     "mocha": "^2.4.5",
     "mocha-phantomjs": "^4.0.2",
-    "opentype.js": "nodebox/opentype.js",
+    "opentype.js": "^0.6.0",
     "paper": "paperjs/paper.js#prebuilt/module",
     "webpack": "^1.12.13"
   },
